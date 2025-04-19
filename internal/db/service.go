@@ -92,3 +92,17 @@ func (s *ServiceStore) GetDetectedServiceByID(ctx context.Context, id bson.Objec
 	}
 	return &serviceHistory, nil
 }
+
+func (s *ServiceStore) DeleteServiceByID(ctx context.Context, id bson.ObjectID) error {
+	resp, err := s.c.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		fmt.Printf("error while deleteting service by ID: %v \n", err)
+		return nil
+	}
+
+	if resp.DeletedCount == 0 {
+		return fmt.Errorf("delete count is zero, not deleted")
+	}
+
+	return nil
+}

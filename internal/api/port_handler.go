@@ -17,6 +17,50 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
+func (a *APIServer) handleServiceDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		responseWithJSON(w, http.StatusBadGateway, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "given method is invalid, try method DELETE to delete detected service history",
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	vars := mux.Vars(r)
+	serviceID := vars["id"]
+
+	_ = r.Context().Value("auth_claim").(*rbac.Claims)
+
+	id, err := bson.ObjectIDFromHex(serviceID)
+	if err != nil {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid service id",
+			"description": "invalid service id provided, try with proper service detected id",
+			"status":      "failed",
+			"error":       err.Error(),
+		})
+		return
+	}
+
+	if err := a.serviceDetectionStore.DeleteServiceByID(r.Context(), id); err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     "successfully deleted",
+		"description": fmt.Sprintf("delete service detection of id: %s", serviceID),
+		"status":      "success",
+	})
+}
+
 func (a *APIServer) handleGetServiceByID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{

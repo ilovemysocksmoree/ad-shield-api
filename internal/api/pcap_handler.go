@@ -147,6 +147,7 @@ func (a *APIServer) handleUploadPCAPFile(w http.ResponseWriter, r *http.Request)
 			"message":     "file size BIG",
 			"description": "file size exceeded our limit, make sure file size is > 100 MB",
 			"status":      "failed",
+			"error":       err.Error(),
 		})
 
 		return
@@ -291,6 +292,48 @@ func (a *APIServer) handleUploadPCAPFile(w http.ResponseWriter, r *http.Request)
 		"description":    "pcap file uploaded, now you can start analysis process",
 		"status":         "success",
 		"pcap_meta_data": docs,
+	})
+}
+
+func (a *APIServer) handleDeletePCAPMetaData(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		responseWithJSON(w, http.StatusBadGateway, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "make sure to use DELETE method",
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	vars := mux.Vars(r)
+	metaID := vars["id"]
+	_ = r.Context().Value("auth_claim").(*rbac.Claims)
+
+	id, err := bson.ObjectIDFromHex(metaID)
+	if err != nil {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid service id",
+			"description": "invalid service id provided, try with proper service detected id",
+			"status":      "failed",
+			"error":       err.Error(),
+		})
+		return
+	}
+
+	if err := a.pcapStore.DeletePCAPByID(r.Context(), id); err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal server error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     "deleted meta-data",
+		"description": fmt.Sprintf("successfully deleted pcap meta-data for id: %s", metaID),
+		"status":      "success",
 	})
 }
 

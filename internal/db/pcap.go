@@ -100,3 +100,15 @@ func (ps *PCAPStore) GetPCAPByID(ctx context.Context, id bson.ObjectID) (*PCAPMe
 
 	return &meta, nil
 }
+
+func (ps *PCAPStore) DeletePCAPByID(ctx context.Context, id bson.ObjectID) error {
+	resp, err := ps.c.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+
+	if resp.DeletedCount == 0 {
+		return fmt.Errorf("delete count is zero, not deleted")
+	}
+	return nil
+}

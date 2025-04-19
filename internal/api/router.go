@@ -81,11 +81,13 @@ func (a *APIServer) Start() error {
 	protectedRoute.HandleFunc("/scan/service", a.HandleServiceDetection).Methods(http.MethodPost)
 	protectedRoute.HandleFunc("/services", a.handleGetAllDetectedServices).Methods(http.MethodGet)
 	protectedRoute.HandleFunc("/scan/history/{id}", a.handleGetServiceByID).Methods(http.MethodGet)
+	protectedRoute.HandleFunc("/service/delete/{id}", a.handleServiceDelete).Methods(http.MethodDelete)
 
 	// ---------------------PCAP-FILE-ANALYSIS------------------------
 	protectedRoute.HandleFunc("/pcap/scan/{id}", a.handleAnalyzeOfPCAP).Methods(http.MethodGet)
 	protectedRoute.HandleFunc("/pcap/upload", a.handleUploadPCAPFile).Methods(http.MethodPost)
 	protectedRoute.HandleFunc("/pcap/metas", a.handleGetAllPcapMetaData).Methods(http.MethodGet)
+	protectedRoute.HandleFunc("/pcap/delete/{id}", a.handleDeletePCAPMetaData).Methods(http.MethodDelete)
 
 	// -----------------------AD-ROUTES-----------------------------------
 	clientRoute.HandleFunc("/ad/checkhealth", a.handleADHealthCheck).Methods(http.MethodPost)
@@ -118,7 +120,7 @@ func (a *APIServer) Start() error {
 }
 
 func (a *APIServer) ConnectToDB() error {
-	mongoURL := "mongodb://192.168.1.7:27016"
+	mongoURL := "mongodb://localhost:27018"
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
