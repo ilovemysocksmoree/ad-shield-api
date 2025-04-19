@@ -36,7 +36,7 @@ func NewAPIServer(log logger.Logger) *APIServer {
 		Port:          4444,
 		logger:        log,
 		dbName:        "",
-		pcapDirectory: "C:\\Users\\HELIOS\\OneDrive\\Desktop\\toto\\fyp\\ADDD\\pcap_files\\pcap-store",
+		pcapDirectory: "/home/baiman/Documents/AD/store/pcap",
 	}
 }
 
@@ -118,7 +118,7 @@ func (a *APIServer) Start() error {
 }
 
 func (a *APIServer) ConnectToDB() error {
-	mongoURL := "mongodb://localhost:27016"
+	mongoURL := "mongodb://192.168.1.7:27016"
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

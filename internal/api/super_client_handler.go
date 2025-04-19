@@ -216,5 +216,44 @@ func (a *APIServer) handleGetClient(w http.ResponseWriter, r *http.Request) {
 	})
 
 }
-func (a *APIServer) handleDeleteClient(w http.ResponseWriter, r *http.Request) {}
+
+func (a *APIServer) handleDeleteClient(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		responseWithJSON(w, http.StatusBadGateway, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "invalid method provided, try method DELETE to delete client",
+			"status":      "failed",
+		})
+		return
+	}
+
+	vars := mux.Vars(r)
+	clientID := vars["id"]
+	cid, err := bson.ObjectIDFromHex(clientID)
+	if err != nil {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid url",
+			"description": "invalid url detected, make sure to pass proper clientID",
+			"status":      "failed",
+		})
+		return
+	}
+
+	if err := a.clientStore.DeleteClient(r.Context(), cid); err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     "client deleted",
+		"description": fmt.Sprintf("client has been deleted for given ID: %s", clientID),
+		"status":      "success",
+	})
+}
+
 func (a *APIServer) handleUpdateClient(w http.ResponseWriter, r *http.Request) {}
