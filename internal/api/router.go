@@ -72,6 +72,11 @@ func (a *APIServer) Start() error {
 	clientRoute.HandleFunc("/user/{id}", a.handleGetUserByID).Methods(http.MethodGet)
 	protectedRoute.HandleFunc("/user/stats/{id}", a.handleGetUserStats).Methods(http.MethodGet)
 
+	// -----------------------IP-LOOKUP----------------------------------------------------
+	protectedRoute.HandleFunc("/ip/lookup", a.handleIPLookup).Methods(http.MethodPost)
+	protectedRoute.HandleFunc("/ip/lookups", nil).Methods(http.MethodGet)
+	protectedRoute.HandleFunc("/ip/lookup/{id}", nil).Methods(http.MethodGet)
+
 	// ------------------ROLES--------------------------
 	protectedRoute.HandleFunc("/roles/add", a.handleAddRoles).Methods(http.MethodPost)
 	protectedRoute.HandleFunc("/roles", a.handleGetAllRoles).Methods(http.MethodGet)
