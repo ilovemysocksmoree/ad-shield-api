@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/bob17/adpis/internal/geo"
 	"github.com/bob17/adpis/internal/rbac"
@@ -50,6 +51,8 @@ func (a *APIServer) handleIPLookup(w http.ResponseWriter, r *http.Request) {
 
 	userID, _ := bson.ObjectIDFromHex(claims.UserID)
 	resp.CreatedBy = userID
+	resp.CreatedAt = time.Now()
+
 	_ = a.ipLookupStore.AddNewIPLookUpData(r.Context(), *resp)
 	responseWithJSON(w, http.StatusOK, map[string]interface{}{
 		"message":     "lookup succeeded",
@@ -146,5 +149,46 @@ func (a *APIServer) handleGetAIPLookup(w http.ResponseWriter, r *http.Request) {
 		"description": "check docs section for ip-lookup history data",
 		"status":      "success",
 		"docs":        resp,
+	})
+}
+
+func (a *APIServer) handleDeleteIPLookupData(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		responseWithJSON(w, http.StatusBadGateway, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "try method DELETE to delete history data of IP-lookup",
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	vars := mux.Vars(r)
+	ipLookupID := vars["id"]
+	id, err := bson.ObjectIDFromHex(ipLookupID)
+	if err != nil {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid id",
+			"description": "given id in path is invalid, try with valid id to delete data",
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	if err := a.ipLookupStore.DeleteIPLookup(r.Context(), id); err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     "deleted iplookup history",
+		"description": fmt.Sprintf("iplookup history data for id: %s has been deleted successfully \n", ipLookupID),
+		"status":      "success",
 	})
 }

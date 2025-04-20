@@ -92,11 +92,11 @@ func (il *LookupStore) GetAllIPLookupHistory(ctx context.Context, limit, skip in
 	return lookupResp, nil
 }
 
-func (il *LookupStore) GetAIPLookupByID(ctx context.Context, id bson.ObjectID) (*LookupStore, error) {
-	var docs LookupStore
+func (il *LookupStore) GetAIPLookupByID(ctx context.Context, id bson.ObjectID) (*LookupResult, error) {
+	var docs LookupResult
 	if err := il.col.FindOne(ctx, bson.M{"_id": id}).Decode(&docs); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, fmt.Errorf("provided ID doesn't match any item in the collection")
+			return nil, nil
 		}
 
 		return nil, err

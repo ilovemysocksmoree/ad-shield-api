@@ -75,9 +75,9 @@ func (a *APIServer) Start() error {
 
 	// -----------------------IP-LOOKUP----------------------------------------------------
 	protectedRoute.HandleFunc("/ip/lookup", a.handleIPLookup).Methods(http.MethodPost)
-	protectedRoute.HandleFunc("/ip/lookups", a.handleGetAllIPLookup).Methods(http.MethodGet)
+	protectedRoute.HandleFunc("/ip/lookup/history", a.handleGetAllIPLookup).Methods(http.MethodGet)
 	protectedRoute.HandleFunc("/ip/lookup/{id}", a.handleGetAIPLookup).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/ip/lookup/delete/{id}", nil).Methods(http.MethodDelete)
+	protectedRoute.HandleFunc("/ip/lookup/delete/{id}", a.handleDeleteIPLookupData).Methods(http.MethodDelete)
 
 	// ------------------ROLES--------------------------
 	protectedRoute.HandleFunc("/roles/add", a.handleAddRoles).Methods(http.MethodPost)
