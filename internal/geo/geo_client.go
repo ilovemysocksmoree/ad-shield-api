@@ -7,10 +7,12 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/bob17/adpis/internal/db"
 )
 
 type GeoClient interface {
-	LookUp(ctx context.Context, ip net.IP) (*GeoInfo, error)
+	LookUp(ctx context.Context, ip net.IP) (*db.GeoInfo, error)
 }
 
 type IPAPIClient struct {
@@ -25,7 +27,7 @@ func GetAPIClient() *IPAPIClient {
 	}
 }
 
-func (i *IPAPIClient) LookUp(ctx context.Context, ip net.IP) (*GeoInfo, error) {
+func (i *IPAPIClient) LookUp(ctx context.Context, ip net.IP) (*db.GeoInfo, error) {
 	url := fmt.Sprintf("http://ip-api.com/json/%s", ip.String())
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -70,7 +72,7 @@ func (i *IPAPIClient) LookUp(ctx context.Context, ip net.IP) (*GeoInfo, error) {
 		return nil, fmt.Errorf("status not success")
 	}
 
-	return &GeoInfo{
+	return &db.GeoInfo{
 		Country:      apiResp.Country,
 		CountryCode:  apiResp.CountryCode,
 		Region:       apiResp.RegionName,

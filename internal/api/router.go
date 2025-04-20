@@ -29,6 +29,7 @@ type APIServer struct {
 	pcapStore             *db.PCAPStore
 	clientStore           *db.ClientStore
 	userActivityStore     *db.UserActivityStore
+	ipLookupStore         *db.LookupStore
 }
 
 func NewAPIServer(log logger.Logger) *APIServer {
@@ -74,8 +75,9 @@ func (a *APIServer) Start() error {
 
 	// -----------------------IP-LOOKUP----------------------------------------------------
 	protectedRoute.HandleFunc("/ip/lookup", a.handleIPLookup).Methods(http.MethodPost)
-	protectedRoute.HandleFunc("/ip/lookups", nil).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/ip/lookup/{id}", nil).Methods(http.MethodGet)
+	protectedRoute.HandleFunc("/ip/lookups", a.handleGetAllIPLookup).Methods(http.MethodGet)
+	protectedRoute.HandleFunc("/ip/lookup/{id}", a.handleGetAIPLookup).Methods(http.MethodGet)
+	protectedRoute.HandleFunc("/ip/lookup/delete/{id}", nil).Methods(http.MethodDelete)
 
 	// ------------------ROLES--------------------------
 	protectedRoute.HandleFunc("/roles/add", a.handleAddRoles).Methods(http.MethodPost)

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/bob17/adpis/internal/db"
 )
 
 type GeoService struct {
@@ -19,8 +21,8 @@ func NewGeoService(cfg *GeoConfig) *GeoService {
 	}
 }
 
-func (gs *GeoService) Lookup() (*LookupResult, error) {
-	result := &LookupResult{
+func (gs *GeoService) Lookup() (*db.LookupResult, error) {
+	result := &db.LookupResult{
 		Target: gs.config.Target,
 	}
 
@@ -31,7 +33,7 @@ func (gs *GeoService) Lookup() (*LookupResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	result.IP = ip
+	result.IP = ip.String()
 
 	info, err := gs.lookupGeoLocation(ctx, ip)
 	if err != nil {
@@ -80,7 +82,7 @@ func (gs *GeoService) resolveTarget(ctx context.Context) (net.IP, error) {
 	return nil, fmt.Errorf("failed to resolve domain")
 }
 
-func (gs *GeoService) lookupGeoLocation(ctx context.Context, ip net.IP) (*GeoInfo, error) {
+func (gs *GeoService) lookupGeoLocation(ctx context.Context, ip net.IP) (*db.GeoInfo, error) {
 	for attempt := 0; attempt < gs.config.Retries; attempt++ {
 		info, err := gs.geoClient.LookUp(ctx, ip)
 		if err == nil {
