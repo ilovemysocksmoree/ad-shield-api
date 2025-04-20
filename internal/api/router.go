@@ -116,7 +116,7 @@ func (a *APIServer) Start() error {
 
 	corsOptions := cors.Options{
 		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{"GET", "POST", "OPTIONS"},
+		AllowedMethods: []string{"GET", "POST", "OPTIONS", "DELETE"},
 		AllowedHeaders: []string{"Accept", "Content-Type", "Content-Length", "Application-Encoding", "Authorization"},
 	}
 	c := cors.New(corsOptions)
