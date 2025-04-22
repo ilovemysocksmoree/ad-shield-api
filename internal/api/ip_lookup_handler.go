@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/bob17/adpis/internal/db"
 	"github.com/bob17/adpis/internal/geo"
 	"github.com/bob17/adpis/internal/rbac"
 	"github.com/gorilla/mux"
@@ -53,6 +54,14 @@ func (a *APIServer) handleIPLookup(w http.ResponseWriter, r *http.Request) {
 	resp.CreatedBy = userID
 	resp.CreatedAt = time.Now()
 
+	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
+		UserID:    userID,
+		Action:    "ip_lookup_req",
+		Timestamp: time.Now(),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	})
+
 	_ = a.ipLookupStore.AddNewIPLookUpData(r.Context(), *resp)
 	responseWithJSON(w, http.StatusOK, map[string]interface{}{
 		"message":     "lookup succeeded",
@@ -73,7 +82,7 @@ func (a *APIServer) handleGetAllIPLookup(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	resp, err := a.ipLookupStore.GetAllIPLookupHistory(r.Context(), 10, 1)
+	resp, err := a.ipLookupStore.GetAllIPLookupHistory(r.Context(), 10, 0)
 	if err != nil {
 		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
 			"message":     "internal server error",
@@ -93,6 +102,17 @@ func (a *APIServer) handleGetAllIPLookup(w http.ResponseWriter, r *http.Request)
 
 		return
 	}
+
+	claims := r.Context().Value("auth_claim").(*rbac.Claims)
+	userID, _ := bson.ObjectIDFromHex(claims.UserID)
+
+	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
+		UserID:    userID,
+		Action:    "fetch_ip_lookup_history",
+		Timestamp: time.Now(),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	})
 
 	responseWithJSON(w, http.StatusOK, map[string]interface{}{
 		"message":     "successfully fetched history",
@@ -144,6 +164,17 @@ func (a *APIServer) handleGetAIPLookup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	claims := r.Context().Value("auth_claim").(*rbac.Claims)
+	userID, _ := bson.ObjectIDFromHex(claims.UserID)
+
+	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
+		UserID:    userID,
+		Action:    "fetch_ip_lookup",
+		Timestamp: time.Now(),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	})
+
 	responseWithJSON(w, http.StatusOK, map[string]interface{}{
 		"message":     "successfully fetched",
 		"description": "check docs section for ip-lookup history data",
@@ -185,6 +216,17 @@ func (a *APIServer) handleDeleteIPLookupData(w http.ResponseWriter, r *http.Requ
 
 		return
 	}
+
+	claims := r.Context().Value("auth_claim").(*rbac.Claims)
+	userID, _ := bson.ObjectIDFromHex(claims.UserID)
+
+	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
+		UserID:    userID,
+		Action:    "delete_ip_lookup_docs",
+		Timestamp: time.Now(),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	})
 
 	responseWithJSON(w, http.StatusOK, map[string]interface{}{
 		"message":     "deleted iplookup history",

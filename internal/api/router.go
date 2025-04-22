@@ -37,7 +37,7 @@ func NewAPIServer(log logger.Logger) *APIServer {
 		Port:          4444,
 		logger:        log,
 		dbName:        "",
-		pcapDirectory: "/home/baiman/Documents/AD/store/pcap",
+		pcapDirectory: "/home/vairav-babin/localdisk-c/etc/AD/pcap-store",
 	}
 }
 
@@ -64,6 +64,22 @@ func (a *APIServer) Start() error {
 	superAdminRoute.HandleFunc("/client/{id}", a.handleGetClient).Methods(http.MethodGet)
 	superAdminRoute.HandleFunc("/client/{id}/delete", a.handleDeleteClient).Methods(http.MethodDelete)
 	superAdminRoute.HandleFunc("/client/{id}/update", a.handleUpdateClient).Methods(http.MethodPut)
+	superAdminRoute.HandleFunc("/clients/stats", a.handleGenerateBasicAnalysis).Methods(http.MethodGet)
+
+	superAdminRoute.HandleFunc("/clients/{id}/pcaps", a.handleBasicAnalysisPCAP).Methods(http.MethodGet)
+	superAdminRoute.HandleFunc("/clients/{id}/pcaps/stats", a.handleGetClientPCAPStats).Methods(http.MethodGet)
+
+	superAdminRoute.HandleFunc("/clients/{id}/lookups", a.handleBasicAnalysisIPLookup).Methods(http.MethodGet) // get iplookup with clientID
+	superAdminRoute.HandleFunc("/clients/{id}/lookups/stats", nil).Methods(http.MethodGet)
+
+	superAdminRoute.HandleFunc("/clients/{id}/services", a.handleBasicAnalysisServiceDetection).Methods(http.MethodGet) // get services with clientID
+	superAdminRoute.HandleFunc("/clients/{id}/services/stats", a.handleGetAllStatsFromService).Methods(http.MethodGet)  // get services's stats with clientID
+
+	superAdminRoute.HandleFunc("/clients/{id}/users", a.handleBasicAnalysisUsers).Methods(http.MethodGet)
+	superAdminRoute.HandleFunc("/clients/{id}/users/stats", nil).Methods(http.MethodGet)
+
+	superAdminRoute.HandleFunc("/clients/{id}/roles", a.handleBasicAnalysisRoles).Methods(http.MethodGet)
+	superAdminRoute.HandleFunc("/clients/{id}/roles/stats", nil).Methods(http.MethodGet)
 
 	// ------------------USERS--------------------------
 	clientRoute.HandleFunc("/user/register", a.handleUserRegistration).Methods(http.MethodPost)
@@ -89,6 +105,8 @@ func (a *APIServer) Start() error {
 	protectedRoute.HandleFunc("/services", a.handleGetAllDetectedServices).Methods(http.MethodGet)
 	protectedRoute.HandleFunc("/scan/history/{id}", a.handleGetServiceByID).Methods(http.MethodGet)
 	protectedRoute.HandleFunc("/service/delete/{id}", a.handleServiceDelete).Methods(http.MethodDelete)
+	protectedRoute.HandleFunc("/service/stats/{id}", a.handleFetchStatsByServiceID).Methods(http.MethodGet)
+	protectedRoute.HandleFunc("/service/user/stats/{userID}", a.handleFetchStatsForUser).Methods(http.MethodGet)
 
 	// ---------------------PCAP-FILE-ANALYSIS------------------------
 	protectedRoute.HandleFunc("/pcap/scan/{id}", a.handleAnalyzeOfPCAP).Methods(http.MethodGet)
@@ -127,7 +145,7 @@ func (a *APIServer) Start() error {
 }
 
 func (a *APIServer) ConnectToDB() error {
-	mongoURL := "mongodb://localhost:27018"
+	mongoURL := "mongodb://agentone:password123@10.167.11.12:27017"
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

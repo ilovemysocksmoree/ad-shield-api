@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	logPath := "/home/baiman/Documents/AD/store/logs/log.txt"
+	logPath := "/home/vairav-babin/localdisk-c/etc/AD/api-logs/log.txt"
 	fileLogger, err := logger.NewFileLogger(logger.Debug, logPath)
 	if err != nil {
 		fmt.Println("Error while initializing logger")

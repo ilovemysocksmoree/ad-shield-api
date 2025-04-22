@@ -31,7 +31,7 @@ func (a *APIServer) handleServiceDelete(w http.ResponseWriter, r *http.Request) 
 	vars := mux.Vars(r)
 	serviceID := vars["id"]
 
-	_ = r.Context().Value("auth_claim").(*rbac.Claims)
+	claim := r.Context().Value("auth_claim").(*rbac.Claims)
 
 	id, err := bson.ObjectIDFromHex(serviceID)
 	if err != nil {
@@ -54,6 +54,15 @@ func (a *APIServer) handleServiceDelete(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	userID, _ := bson.ObjectIDFromHex(claim.UserID)
+	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
+		UserID:    userID,
+		Action:    "delete_port_scan_docs",
+		Timestamp: time.Now(),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	})
+
 	responseWithJSON(w, http.StatusOK, map[string]interface{}{
 		"message":     "successfully deleted",
 		"description": fmt.Sprintf("delete service detection of id: %s", serviceID),
@@ -75,7 +84,7 @@ func (a *APIServer) handleGetServiceByID(w http.ResponseWriter, r *http.Request)
 	vars := mux.Vars(r)
 	serviceID := vars["id"]
 
-	_ = r.Context().Value("auth_claim").(*rbac.Claims)
+	claim := r.Context().Value("auth_claim").(*rbac.Claims)
 
 	id, err := bson.ObjectIDFromHex(serviceID)
 	if err != nil {
@@ -96,6 +105,15 @@ func (a *APIServer) handleGetServiceByID(w http.ResponseWriter, r *http.Request)
 			"status":      "failed",
 		})
 	}
+
+	userID, _ := bson.ObjectIDFromHex(claim.UserID)
+	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
+		UserID:    userID,
+		Action:    "fetch_scan_service",
+		Timestamp: time.Now(),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	})
 
 	responseWithJSON(w, http.StatusOK, map[string]interface{}{
 		"message":     "successfully fetched service",
@@ -221,7 +239,7 @@ func (a *APIServer) HandleServiceDetection(w http.ResponseWriter, r *http.Reques
 
 	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
 		UserID:    userID,
-		Action:    "port_scan",
+		Action:    "port_scan_req",
 		Timestamp: time.Now(),
 		IPAddress: r.RemoteAddr,
 		UserAgent: r.UserAgent(),
@@ -275,7 +293,7 @@ func (a *APIServer) handleGetAllDetectedServices(w http.ResponseWriter, r *http.
 	userID, _ := bson.ObjectIDFromHex(claims.UserID)
 	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
 		UserID:    userID,
-		Action:    "get_all_scanned_result",
+		Action:    "fetch_scanned_service_history",
 		Timestamp: time.Now(),
 		IPAddress: r.RemoteAddr,
 		UserAgent: r.UserAgent(),
@@ -286,6 +304,150 @@ func (a *APIServer) handleGetAllDetectedServices(w http.ResponseWriter, r *http.
 		"description": "fetched all history of data from database",
 		"status":      "success",
 		"docs":        services,
+	})
+}
+
+func (a *APIServer) handleFetchStatsForAllHistory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		responseWithJSON(w, http.StatusBadGateway, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "try method GET to fetch history information of service detection",
+			"status":      "failed",
+		})
+		return
+	}
+
+	claim := r.Context().Value("auth_claim").(*rbac.Claims)
+	userID, _ := bson.ObjectIDFromHex(claim.UserID)
+
+	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
+		UserID:    userID,
+		Action:    "fetch_all_port_scan_stats",
+		Timestamp: time.Now(),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	})
+
+	resp, err := a.serviceDetectionStore.AnalyzeAll(r.Context())
+	if err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal server error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     "stats fetched",
+		"description": "successfully fetched all stats for service detection collection",
+		"status":      "success",
+		"stats":       resp,
+	})
+}
+
+func (a *APIServer) handleFetchStatsForUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		responseWithJSON(w, http.StatusBadGateway, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "try method GET to fetch history information of service detection",
+			"status":      "failed",
+		})
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["userID"]
+	userPID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid id",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+		return
+	}
+
+	claim := r.Context().Value("auth_claim").(*rbac.Claims)
+	userID, _ := bson.ObjectIDFromHex(claim.UserID)
+
+	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
+		UserID:    userID,
+		Action:    "fetch_port_scan_stats_by_user_id",
+		Timestamp: time.Now(),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	})
+
+	resp, err := a.serviceDetectionStore.AnalysisByUserID(r.Context(), userPID)
+	if err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal server error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     "stats fetched",
+		"description": fmt.Sprintf("successfully fetched stats for service id: %s", id),
+		"status":      "success",
+		"stats":       resp,
+	})
+}
+
+func (a *APIServer) handleFetchStatsByServiceID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		responseWithJSON(w, http.StatusBadGateway, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "try method GET to fetch history information of service detection",
+			"status":      "failed",
+		})
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+	serviceID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid id",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+		return
+	}
+
+	claim := r.Context().Value("auth_claim").(*rbac.Claims)
+	userID, _ := bson.ObjectIDFromHex(claim.UserID)
+
+	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
+		UserID:    userID,
+		Action:    "fetch_port_scan_stats_by_id",
+		Timestamp: time.Now(),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	})
+
+	resp, err := a.serviceDetectionStore.AnalyzeAService(r.Context(), serviceID)
+	if err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal server error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     "stats fetched",
+		"description": fmt.Sprintf("successfully fetched stats for service id: %s", id),
+		"status":      "success",
+		"stats":       resp,
 	})
 }
 

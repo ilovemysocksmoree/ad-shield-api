@@ -308,7 +308,7 @@ func (a *APIServer) handleDeletePCAPMetaData(w http.ResponseWriter, r *http.Requ
 
 	vars := mux.Vars(r)
 	metaID := vars["id"]
-	_ = r.Context().Value("auth_claim").(*rbac.Claims)
+	claim := r.Context().Value("auth_claim").(*rbac.Claims)
 
 	id, err := bson.ObjectIDFromHex(metaID)
 	if err != nil {
@@ -329,6 +329,14 @@ func (a *APIServer) handleDeletePCAPMetaData(w http.ResponseWriter, r *http.Requ
 		})
 		return
 	}
+	userID, _ := bson.ObjectIDFromHex(claim.UserID)
+	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
+		UserID:    userID,
+		Action:    "delete_pcap_meta_data",
+		Timestamp: time.Now(),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	})
 
 	responseWithJSON(w, http.StatusOK, map[string]interface{}{
 		"message":     "deleted meta-data",
