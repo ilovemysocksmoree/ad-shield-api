@@ -70,7 +70,7 @@ func (a *APIServer) Start() error {
 	superAdminRoute.HandleFunc("/clients/{id}/pcaps/stats", a.handleGetClientPCAPStats).Methods(http.MethodGet)
 
 	superAdminRoute.HandleFunc("/clients/{id}/lookups", a.handleBasicAnalysisIPLookup).Methods(http.MethodGet) // get iplookup with clientID
-	superAdminRoute.HandleFunc("/clients/{id}/lookups/stats", nil).Methods(http.MethodGet)
+	superAdminRoute.HandleFunc("/clients/{id}/lookups/stats", a.handleGetIPLookupStats).Methods(http.MethodGet)
 
 	superAdminRoute.HandleFunc("/clients/{id}/services", a.handleBasicAnalysisServiceDetection).Methods(http.MethodGet) // get services with clientID
 	superAdminRoute.HandleFunc("/clients/{id}/services/stats", a.handleGetAllStatsFromService).Methods(http.MethodGet)  // get services's stats with clientID
