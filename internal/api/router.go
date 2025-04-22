@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/bob17/adpis/internal/db"
@@ -33,11 +34,12 @@ type APIServer struct {
 }
 
 func NewAPIServer(log logger.Logger) *APIServer {
+	pcapStore := os.Getenv("PCAP_STORE")
 	return &APIServer{
 		Port:          4444,
 		logger:        log,
 		dbName:        "",
-		pcapDirectory: "/home/vairav-babin/localdisk-c/etc/AD/pcap-store",
+		pcapDirectory: pcapStore,
 	}
 }
 
@@ -145,7 +147,7 @@ func (a *APIServer) Start() error {
 }
 
 func (a *APIServer) ConnectToDB() error {
-	mongoURL := "mongodb://agentone:password123@10.167.11.12:27017"
+	mongoURL := os.Getenv("MONGO_URL")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
