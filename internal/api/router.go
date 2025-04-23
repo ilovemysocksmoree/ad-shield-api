@@ -78,10 +78,10 @@ func (a *APIServer) Start() error {
 	superAdminRoute.HandleFunc("/clients/{id}/services/stats", a.handleGetAllStatsFromService).Methods(http.MethodGet)  // get services's stats with clientID
 
 	superAdminRoute.HandleFunc("/clients/{id}/users", a.handleBasicAnalysisUsers).Methods(http.MethodGet)
-	superAdminRoute.HandleFunc("/clients/{id}/users/stats", nil).Methods(http.MethodGet)
+	superAdminRoute.HandleFunc("/clients/{id}/users/stats", a.handleGetAllStatsFromUsers).Methods(http.MethodGet)
 
 	superAdminRoute.HandleFunc("/clients/{id}/roles", a.handleBasicAnalysisRoles).Methods(http.MethodGet)
-	superAdminRoute.HandleFunc("/clients/{id}/roles/stats", nil).Methods(http.MethodGet)
+	superAdminRoute.HandleFunc("/clients/{id}/roles/stats", a.handleGetAllStatsFromRoles).Methods(http.MethodGet)
 
 	// ------------------USERS--------------------------
 	clientRoute.HandleFunc("/user/register", a.handleUserRegistration).Methods(http.MethodPost)
@@ -89,7 +89,7 @@ func (a *APIServer) Start() error {
 	clientRoute.HandleFunc("/user/login", a.handleUserLogin).Methods(http.MethodPost)
 	protectedRoute.HandleFunc("/user/logout", a.handleUserLogout).Methods(http.MethodGet)
 	clientRoute.HandleFunc("/user/{id}", a.handleGetUserByID).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/user/stats/{id}", a.handleGetUserStats).Methods(http.MethodGet)
+	clientRoute.HandleFunc("/user/stats/{id}", a.handleGetUserStats).Methods(http.MethodGet)
 
 	// -----------------------IP-LOOKUP----------------------------------------------------
 	protectedRoute.HandleFunc("/ip/lookup", a.handleIPLookup).Methods(http.MethodPost)

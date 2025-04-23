@@ -341,6 +341,59 @@ func (a *APIServer) handleBasicAnalysisRoles(w http.ResponseWriter, r *http.Requ
 
 }
 
+func (a *APIServer) handleGetAllStatsFromRoles(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "try method GET to fetch analysis for client",
+			"status":      "failed",
+		})
+		return
+	}
+
+	vars := mux.Vars(r)
+	clientID := vars["id"]
+
+	id, err := bson.ObjectIDFromHex(clientID)
+	if err != nil {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid client id",
+			"description": "provided clientID is invalid",
+			"status":      "failed",
+		})
+		return
+	}
+
+	client, err := a.clientStore.GetClientByID(r.Context(), id)
+	if err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal server error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+		return
+	}
+
+	dbName := fmt.Sprintf("%s_adshield", client.ClientName)
+	roleStore := db.NewRoleStore(a.mongoClient, dbName)
+	stats, err := roleStore.GenerateAnalysis(r.Context())
+	if err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal server error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     fmt.Sprintf("fetched stats from client: %s", client.ClientName),
+		"description": "successfully fetched all stats for given clientID",
+		"status":      "success",
+		"stats":       stats,
+	})
+}
+
 func (a *APIServer) handleGetClientPCAPStats(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
@@ -656,6 +709,59 @@ func (a *APIServer) handleBasicAnalysisUsers(w http.ResponseWriter, r *http.Requ
 		"description": "successfully fetched all users for given clientID",
 		"status":      "success",
 		"users":       users,
+	})
+}
+
+func (a *APIServer) handleGetAllStatsFromUsers(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "try method GET to fetch analysis for client",
+			"status":      "failed",
+		})
+		return
+	}
+
+	vars := mux.Vars(r)
+	clientID := vars["id"]
+
+	id, err := bson.ObjectIDFromHex(clientID)
+	if err != nil {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid client id",
+			"description": "provided clientID is invalid",
+			"status":      "failed",
+		})
+		return
+	}
+
+	client, err := a.clientStore.GetClientByID(r.Context(), id)
+	if err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal server error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+		return
+	}
+
+	dbName := fmt.Sprintf("%s_adshield", client.ClientName)
+	userStore := db.NewUserStore(a.mongoClient, dbName)
+	stats, err := userStore.GenerateAnalysis(r.Context())
+	if err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal server error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     fmt.Sprintf("Stats generated for client: %s", client.ClientName),
+		"description": "successfully generated all users stats for given clientID",
+		"status":      "success",
+		"stats":       stats,
 	})
 }
 
