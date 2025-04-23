@@ -36,9 +36,10 @@ func (a *APIServer) handleClientAdd(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	clientName := strings.ReplaceAll(adClient.ClientName, " ", "_")
 	newClient := db.ADClient{
 		ID:                bson.NewObjectID(),
-		ClientName:        adClient.ClientName,
+		ClientName:        clientName,
 		Description:       adClient.Description,
 		OrganizationType:  adClient.OrganizationType,
 		Headquarter:       adClient.HeadQuarter,
@@ -145,7 +146,7 @@ func (a *APIServer) handleGetAllClient(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(clients) == 0 {
-		responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
+		responseWithJSON(w, http.StatusOK, map[string]interface{}{
 			"message":     "client not found",
 			"description": "you broke, you're project has no client, LOL",
 			"status":      "failed",
