@@ -67,7 +67,6 @@ func (a *APIServer) handleIPLookup(w http.ResponseWriter, r *http.Request) {
 		"message":     "lookup succeeded",
 		"description": fmt.Sprintf("successfully lookuped for domain/ip: %s", req.Domain),
 		"status":      "success",
-		"docs":        resp,
 	})
 }
 
