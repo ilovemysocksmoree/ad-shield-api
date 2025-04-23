@@ -264,6 +264,57 @@ func (a *APIServer) handleUserLogout(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (a *APIServer) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		responseWithJSON(w, http.StatusBadGateway, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "invalid method provided to delete user",
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	claim := r.Context().Value("auth_claim").(*rbac.Claims)
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	clientId, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		responseWithJSON(w, http.StatusConflict, map[string]interface{}{
+			"message":     "invalid id",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+		return
+	}
+
+	if err := a.userStore.DeleteUser(r.Context(), clientId); err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal error",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	userID, _ := bson.ObjectIDFromHex(claim.UserID)
+	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
+		UserID:    userID,
+		Action:    "user_deleted",
+		Timestamp: time.Now(),
+		IPAddress: r.RemoteAddr,
+		UserAgent: r.UserAgent(),
+	})
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     "successfully deleted",
+		"description": fmt.Sprintf("user with id: %s has been deleted by user: %s", id, claim.ID),
+		"status":      "success",
+	})
+}
+
 func (a *APIServer) handleGetUserByID(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
@@ -274,14 +325,15 @@ func (a *APIServer) handleGetUserByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_id := r.URL.Query().Get("id")
+	vars := mux.Vars(r)
+	_id := vars["id"]
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	id, err := bson.ObjectIDFromHex(_id)
 	if err != nil {
 		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
-			"message":     "invalid id",
+			"message":     fmt.Sprintf("invalid id: %s", _id),
 			"description": fmt.Sprintf("invalid id provided: %v", err),
 			"status":      "failed",
 		})

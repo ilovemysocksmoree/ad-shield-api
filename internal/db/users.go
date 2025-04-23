@@ -157,6 +157,21 @@ func (us *UserStore) GetUserByID(ctx context.Context, id bson.ObjectID) (*Users,
 	return &u, nil
 }
 
+func (us *UserStore) DeleteUser(ctx context.Context, id bson.ObjectID) error {
+	resp, err := us.c.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		fmt.Println("error while deleting user")
+		return err
+	}
+
+	if resp.DeletedCount == 0 {
+		fmt.Println("unable to delete user, resp count is zero")
+		return fmt.Errorf("user not deleted as server responed with deletedCount of zero")
+	}
+
+	return nil
+}
+
 func (us *UserStore) GenerateAnalysis(ctx context.Context) (*UserAnalysisResult, error) {
 	// Get all users
 	users, err := us.GetAllUsersFromDB(ctx, 0, 0)
