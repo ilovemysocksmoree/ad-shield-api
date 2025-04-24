@@ -11,6 +11,7 @@ import (
 	"github.com/bob17/adpis/internal/db"
 	"github.com/bob17/adpis/internal/models"
 	"github.com/bob17/adpis/internal/rbac"
+	"github.com/bob17/adpis/pkg/utils"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -240,7 +241,7 @@ func (a *APIServer) handleUserLogout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, ok := r.Context().Value("auth_claim").(*rbac.Claims)
+	claims, ok := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	if !ok {
 		responseWithJSON(w, http.StatusUnauthorized, map[string]interface{}{
 			"message":     "unauthorized",
@@ -277,7 +278,7 @@ func (a *APIServer) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claim := r.Context().Value("auth_claim").(*rbac.Claims)
+	claim := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	vars := mux.Vars(r)
 	id := vars["id"]
 

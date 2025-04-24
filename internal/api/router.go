@@ -60,6 +60,7 @@ func (a *APIServer) Start() error {
 	protectedRoute := router.PathPrefix("/api/v1/{client_id}").Subrouter()
 	protectedRoute.Use(a.ValidateIfRealClientID, a.InitializeStores, a.Authorization)
 	protectedRoute.Use(a.validateClientWithGivenToken, a.validateIfUserExistInClient)
+	protectedRoute.Use(a.validateForPermissions)
 
 	// ---------------___TESTING-----------------------------------
 	protectedRoute.HandleFunc("/validator", a.RBACValidatorHandler).Methods(http.MethodGet)
@@ -111,6 +112,7 @@ func (a *APIServer) Start() error {
 	protectedRoute.HandleFunc("/scan/port", a.HandlePortScan).Methods(http.MethodPost)
 	protectedRoute.HandleFunc("/scan/service", a.HandleServiceDetection).Methods(http.MethodPost)
 	protectedRoute.HandleFunc("/services", a.handleGetAllDetectedServices).Methods(http.MethodGet)
+	protectedRoute.HandleFunc("/services/stats", a.handleFetchStatsForAllHistory).Methods(http.MethodGet)
 	protectedRoute.HandleFunc("/scan/history/{id}", a.handleGetServiceByID).Methods(http.MethodGet)
 	protectedRoute.HandleFunc("/service/delete/{id}", a.handleServiceDelete).Methods(http.MethodDelete)
 	protectedRoute.HandleFunc("/service/stats/{id}", a.handleFetchStatsByServiceID).Methods(http.MethodGet)

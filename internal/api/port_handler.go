@@ -13,6 +13,7 @@ import (
 	"github.com/bob17/adpis/internal/rbac"
 	"github.com/bob17/adpis/internal/scanner"
 	"github.com/bob17/adpis/internal/service"
+	"github.com/bob17/adpis/pkg/utils"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -31,7 +32,7 @@ func (a *APIServer) handleServiceDelete(w http.ResponseWriter, r *http.Request) 
 	vars := mux.Vars(r)
 	serviceID := vars["id"]
 
-	claim := r.Context().Value("auth_claim").(*rbac.Claims)
+	claim := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 
 	id, err := bson.ObjectIDFromHex(serviceID)
 	if err != nil {
@@ -84,7 +85,7 @@ func (a *APIServer) handleGetServiceByID(w http.ResponseWriter, r *http.Request)
 	vars := mux.Vars(r)
 	serviceID := vars["id"]
 
-	claim := r.Context().Value("auth_claim").(*rbac.Claims)
+	claim := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 
 	id, err := bson.ObjectIDFromHex(serviceID)
 	if err != nil {
@@ -175,7 +176,7 @@ func (a *APIServer) HandleServiceDetection(w http.ResponseWriter, r *http.Reques
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	claims, ok := r.Context().Value("auth_claim").(*rbac.Claims)
+	claims, ok := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	if !ok {
 		responseWithJSON(w, http.StatusConflict, map[string]interface{}{
 			"message":     "auth failed",
@@ -280,7 +281,7 @@ func (a *APIServer) handleGetAllDetectedServices(w http.ResponseWriter, r *http.
 		return
 	}
 
-	claims, ok := r.Context().Value("auth_claim").(*rbac.Claims)
+	claims, ok := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	if !ok {
 		responseWithJSON(w, http.StatusConflict, map[string]interface{}{
 			"message":     "auth failed",
@@ -317,7 +318,7 @@ func (a *APIServer) handleFetchStatsForAllHistory(w http.ResponseWriter, r *http
 		return
 	}
 
-	claim := r.Context().Value("auth_claim").(*rbac.Claims)
+	claim := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	userID, _ := bson.ObjectIDFromHex(claim.UserID)
 
 	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
@@ -369,7 +370,7 @@ func (a *APIServer) handleFetchStatsForUser(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	claim := r.Context().Value("auth_claim").(*rbac.Claims)
+	claim := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	userID, _ := bson.ObjectIDFromHex(claim.UserID)
 
 	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
@@ -421,7 +422,7 @@ func (a *APIServer) handleFetchStatsByServiceID(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	claim := r.Context().Value("auth_claim").(*rbac.Claims)
+	claim := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	userID, _ := bson.ObjectIDFromHex(claim.UserID)
 
 	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{

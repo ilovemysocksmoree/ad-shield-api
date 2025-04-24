@@ -105,6 +105,7 @@ func (ra *RoleStore) AddRoles(ctx context.Context, role Roles) error {
 func (ra *RoleStore) GetARoleWithID(ctx context.Context, id bson.ObjectID) (*Roles, error) {
 	var role Roles
 	if err := ra.c.FindOne(ctx, bson.M{"_id": id}).Decode(&role); err != nil {
+
 		if err == mongo.ErrNoDocuments {
 			return nil, nil
 		}

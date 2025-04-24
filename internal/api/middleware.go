@@ -11,6 +11,7 @@ import (
 
 	"github.com/bob17/adpis/internal/db"
 	"github.com/bob17/adpis/internal/rbac"
+	"github.com/bob17/adpis/pkg/utils"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -158,7 +159,7 @@ func (a *APIServer) Authorization(nxt http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "auth_claim", claims)
+		ctx := context.WithValue(r.Context(), utils.CLAIMS_KEY, claims)
 		r = r.WithContext(ctx)
 		nxt.ServeHTTP(w, r)
 	})
@@ -166,7 +167,7 @@ func (a *APIServer) Authorization(nxt http.Handler) http.Handler {
 
 func (a *APIServer) validateClientWithGivenToken(nxt http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		claims, exist := r.Context().Value("auth_claim").(*rbac.Claims)
+		claims, exist := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 		if !exist {
 			responseWithJSON(w, http.StatusUnauthorized, map[string]interface{}{
 				"message":     "token invalid",
@@ -194,16 +195,26 @@ func (a *APIServer) validateClientWithGivenToken(nxt http.Handler) http.Handler 
 		clientID, _ := bson.ObjectIDFromHex(client_id)
 		client, err := a.clientStore.GetClientByID(r.Context(), clientID)
 		if err != nil {
-			responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
+			responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
 				"message":     "client not found",
-				"description": "client not available in database",
+				"description": err.Error(),
 				"status":      "failed",
 			})
 
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "client_info", client)
+		if client == nil {
+			responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
+				"message":     "client not found",
+				"description": "client doesn't exist on database with given client_id in token",
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), utils.CLIENT_KEY, client)
 		r = r.WithContext(ctx)
 		nxt.ServeHTTP(w, r)
 	})
@@ -211,7 +222,7 @@ func (a *APIServer) validateClientWithGivenToken(nxt http.Handler) http.Handler 
 
 func (a *APIServer) validateIfUserExistInClient(nxt http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		claims, exist := r.Context().Value("auth_claim").(*rbac.Claims)
+		claims, exist := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 		if !exist {
 			responseWithJSON(w, http.StatusUnauthorized, map[string]interface{}{
 				"message":     "token invalid",
@@ -233,7 +244,7 @@ func (a *APIServer) validateIfUserExistInClient(nxt http.Handler) http.Handler {
 			return
 		}
 
-		client, exist := r.Context().Value("client_info").(*db.ADClient)
+		client, exist := r.Context().Value(utils.CLIENT_KEY).(*db.ADClient)
 		if !exist {
 			responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
 				"message":     "client not found",
@@ -266,12 +277,71 @@ func (a *APIServer) validateIfUserExistInClient(nxt http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "user_info", user)
+		ctx := context.WithValue(r.Context(), utils.USER_KEY, user)
 		r = r.WithContext(ctx)
 		nxt.ServeHTTP(w, r)
 	})
 }
 
-// func (a *APIServer) validateForPermissions(nxt http.Handler) http.Handler {
+func (a *APIServer) validateForPermissions(nxt http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claim, exist := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
+		if !exist {
+			responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
+				"message":     "token invalid",
+				"description": "token is not valid, try with proper token",
+				"status":      "failed",
+			})
+			return
+		}
 
-// }
+		client, exist := r.Context().Value(utils.CLIENT_KEY).(*db.ADClient)
+		if !exist {
+			responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
+				"message":     "client not found",
+				"description": "client cannot be found for given middleware",
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		dbName := fmt.Sprintf("%s_adshield", client.ClientName)
+		roleStore := db.NewRoleStore(a.mongoClient, dbName)
+
+		roleID, err := bson.ObjectIDFromHex(claim.RoleID)
+		if err != nil {
+			responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"message":     "internal error",
+				"description": "invalid roleID detected inside of jwt token",
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		role, err := roleStore.GetARoleWithID(r.Context(), roleID)
+		if err != nil {
+			responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"message":     "internal server error",
+				"description": err.Error(),
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		if role == nil {
+			responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
+				"message":     "role not found",
+				"description": fmt.Sprintf("role_id inside of token is not vaild: %s \n", roleID.String()),
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		fmt.Println(role.Permissions)
+		nxt.ServeHTTP(w, r)
+	})
+}

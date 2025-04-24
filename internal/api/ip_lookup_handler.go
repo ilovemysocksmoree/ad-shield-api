@@ -9,6 +9,7 @@ import (
 	"github.com/bob17/adpis/internal/db"
 	"github.com/bob17/adpis/internal/geo"
 	"github.com/bob17/adpis/internal/rbac"
+	"github.com/bob17/adpis/pkg/utils"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -36,7 +37,7 @@ func (a *APIServer) handleIPLookup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := r.Context().Value("auth_claim").(*rbac.Claims)
+	claims := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 
 	geoCfg := geo.NewGeoConfig(req.Domain)
 	geoService := geo.NewGeoService(geoCfg)
@@ -103,7 +104,7 @@ func (a *APIServer) handleGetAllIPLookup(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	claims := r.Context().Value("auth_claim").(*rbac.Claims)
+	claims := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	userID, _ := bson.ObjectIDFromHex(claims.UserID)
 
 	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
@@ -164,7 +165,7 @@ func (a *APIServer) handleGetAIPLookup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims := r.Context().Value("auth_claim").(*rbac.Claims)
+	claims := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	userID, _ := bson.ObjectIDFromHex(claims.UserID)
 
 	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{
@@ -217,7 +218,7 @@ func (a *APIServer) handleDeleteIPLookupData(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	claims := r.Context().Value("auth_claim").(*rbac.Claims)
+	claims := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	userID, _ := bson.ObjectIDFromHex(claims.UserID)
 
 	_ = a.userActivityStore.RecordActivity(r.Context(), db.UserActivity{

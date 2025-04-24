@@ -25,7 +25,7 @@ func GenerateToken(user *db.Users, client_id string) (string, time.Time, error) 
 
 	claims := &Claims{
 		UserID:   user.ID.Hex(),
-		RoleID:   user.ID.Hex(),
+		RoleID:   user.RoleID.Hex(),
 		ClientID: client_id,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expTime),

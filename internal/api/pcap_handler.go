@@ -18,6 +18,7 @@ import (
 	"github.com/bob17/adpis/internal/db"
 	"github.com/bob17/adpis/internal/pcap"
 	"github.com/bob17/adpis/internal/rbac"
+	"github.com/bob17/adpis/pkg/utils"
 	"github.com/google/gopacket"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -100,7 +101,7 @@ func (a *APIServer) handleAnalyzeOfPCAP(w http.ResponseWriter, r *http.Request) 
 
 	wg.Wait()
 
-	claims, ok := r.Context().Value("auth_claim").(*rbac.Claims)
+	claims, ok := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	if !ok {
 		responseWithJSON(w, http.StatusConflict, map[string]interface{}{
 			"message":     "auth failed",
@@ -242,8 +243,7 @@ func (a *APIServer) handleUploadPCAPFile(w http.ResponseWriter, r *http.Request)
 	fileHash := hex.EncodeToString(hasher.Sum(nil))
 	a.logger.Info(fmt.Sprintf("successfully copied uploaded pcap file: [%s] content to path: [%s]", handler.Filename, pcapStoragePath))
 
-	// get jwt-decoded-token >> claims
-	claims, ok := r.Context().Value("auth_claim").(*rbac.Claims)
+	claims, ok := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	if !ok {
 		responseWithJSON(w, http.StatusConflict, map[string]interface{}{
 			"message":     "auth failed",
@@ -308,7 +308,7 @@ func (a *APIServer) handleDeletePCAPMetaData(w http.ResponseWriter, r *http.Requ
 
 	vars := mux.Vars(r)
 	metaID := vars["id"]
-	claim := r.Context().Value("auth_claim").(*rbac.Claims)
+	claim := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 
 	id, err := bson.ObjectIDFromHex(metaID)
 	if err != nil {
@@ -372,7 +372,7 @@ func (a *APIServer) handleGetAllPcapMetaData(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	claims, ok := r.Context().Value("auth_claim").(*rbac.Claims)
+	claims, ok := r.Context().Value(utils.CLAIMS_KEY).(*rbac.Claims)
 	if !ok {
 		responseWithJSON(w, http.StatusConflict, map[string]interface{}{
 			"message":     "auth failed",

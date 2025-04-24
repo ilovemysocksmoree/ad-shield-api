@@ -4,10 +4,11 @@ import (
 	"net/http"
 
 	"github.com/bob17/adpis/internal/db"
+	"github.com/bob17/adpis/pkg/utils"
 )
 
 func (a *APIServer) RBACValidatorHandler(w http.ResponseWriter, r *http.Request) {
-	client, exist := r.Context().Value("client_info").(*db.ADClient)
+	client, exist := r.Context().Value(utils.CLIENT_KEY).(*db.ADClient)
 	if !exist {
 		responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
 			"message":     "client not found",
@@ -18,7 +19,7 @@ func (a *APIServer) RBACValidatorHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	user, exist := r.Context().Value("user_info").(*db.Users)
+	user, exist := r.Context().Value(utils.USER_KEY).(*db.Users)
 	if !exist {
 		responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
 			"message":     "user not found",
