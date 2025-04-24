@@ -163,3 +163,115 @@ func (a *APIServer) Authorization(nxt http.Handler) http.Handler {
 		nxt.ServeHTTP(w, r)
 	})
 }
+
+func (a *APIServer) validateClientWithGivenToken(nxt http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, exist := r.Context().Value("auth_claim").(*rbac.Claims)
+		if !exist {
+			responseWithJSON(w, http.StatusUnauthorized, map[string]interface{}{
+				"message":     "token invalid",
+				"description": "provided token is invalid or expired, try with proper token",
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		vars := mux.Vars(r)
+		client_id := vars["client_id"]
+
+		fmt.Printf("Client ID from URL: %s ||| client ID from token: %s \n", client_id, claims.ClientID)
+		if client_id != claims.ClientID {
+			responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+				"message":     "unexpected error",
+				"description": "clientID doesn't seems to be same",
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		clientID, _ := bson.ObjectIDFromHex(client_id)
+		client, err := a.clientStore.GetClientByID(r.Context(), clientID)
+		if err != nil {
+			responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
+				"message":     "client not found",
+				"description": "client not available in database",
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "client_info", client)
+		r = r.WithContext(ctx)
+		nxt.ServeHTTP(w, r)
+	})
+}
+
+func (a *APIServer) validateIfUserExistInClient(nxt http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, exist := r.Context().Value("auth_claim").(*rbac.Claims)
+		if !exist {
+			responseWithJSON(w, http.StatusUnauthorized, map[string]interface{}{
+				"message":     "token invalid",
+				"description": "provided token is invalid or expired, try with proper token",
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		userID, err := bson.ObjectIDFromHex(claims.UserID)
+		if err != nil {
+			responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"message":     "invalid id detected",
+				"description": err.Error(),
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		client, exist := r.Context().Value("client_info").(*db.ADClient)
+		if !exist {
+			responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
+				"message":     "client not found",
+				"description": "for given clientId, client doesn't exist in database",
+				"status":      "failed",
+			})
+			return
+		}
+
+		clientDBName := fmt.Sprintf("%s_adshield", client.ClientName)
+		clientUserStore := db.NewUserStore(a.mongoClient, clientDBName)
+		user, err := clientUserStore.GetUserByID(r.Context(), userID)
+		if err != nil {
+			responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+				"message":     "user not found",
+				"description": err.Error(),
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		if user == nil {
+			responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
+				"message":     "user not found",
+				"description": "provided token for user doesn't exist on assigned client/tenant",
+				"status":      "failed",
+			})
+
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), "user_info", user)
+		r = r.WithContext(ctx)
+		nxt.ServeHTTP(w, r)
+	})
+}
+
+// func (a *APIServer) validateForPermissions(nxt http.Handler) http.Handler {
+
+// }

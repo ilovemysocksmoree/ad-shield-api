@@ -59,7 +59,10 @@ func (a *APIServer) Start() error {
 
 	protectedRoute := router.PathPrefix("/api/v1/{client_id}").Subrouter()
 	protectedRoute.Use(a.ValidateIfRealClientID, a.InitializeStores, a.Authorization)
+	protectedRoute.Use(a.validateClientWithGivenToken, a.validateIfUserExistInClient)
 
+	// ---------------___TESTING-----------------------------------
+	protectedRoute.HandleFunc("/validator", a.RBACValidatorHandler).Methods(http.MethodGet)
 	// --------------SUPER-ADMIN---------------------------------
 	superAdminRoute.HandleFunc("/add/client", a.handleClientAdd).Methods(http.MethodPost)
 	superAdminRoute.HandleFunc("/clients", a.handleGetAllClient).Methods(http.MethodGet)
