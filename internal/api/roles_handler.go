@@ -64,6 +64,49 @@ func (a *APIServer) handleAddRoles(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (a *APIServer) handleGetRoleByID(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "try GET method to fetch role by ID",
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+	roleID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid role id",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	role, err := a.roleStore.GetARoleWithID(r.Context(), roleID)
+	if err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "role not found",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     "role found",
+		"description": "role found for given role ID",
+		"status":      "success",
+		"docs":        role,
+	})
+}
+
 func (a *APIServer) handleGetAllRoles(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{

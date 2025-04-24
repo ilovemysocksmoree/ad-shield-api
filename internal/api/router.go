@@ -101,6 +101,7 @@ func (a *APIServer) Start() error {
 	// ------------------ROLES--------------------------
 	clientRoute.HandleFunc("/roles/add", a.handleAddRoles).Methods(http.MethodPost)
 	clientRoute.HandleFunc("/roles", a.handleGetAllRoles).Methods(http.MethodGet)
+	clientRoute.HandleFunc("/role/{id}", a.handleGetRoleByID).Methods(http.MethodGet)
 	clientRoute.HandleFunc("/role/delete/{id}", a.handleDeleteRole).Methods(http.MethodDelete)
 
 	// --------------------------PORT-ANALYSIS---------------------
