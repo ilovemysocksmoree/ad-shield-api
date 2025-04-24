@@ -87,12 +87,13 @@ func (a *APIServer) Start() error {
 	superAdminRoute.HandleFunc("/clients/{id}/roles/stats", a.handleGetAllStatsFromRoles).Methods(http.MethodGet)
 
 	// ------------------USERS--------------------------
-	clientRoute.HandleFunc("/user/register", a.handleUserRegistration).Methods(http.MethodPost)
-	clientRoute.HandleFunc("/users/all", a.handleGetAllRegisteredUsers).Methods(http.MethodGet)
+
+	protectedRoute.Handle("/user/register", a.hasAccess("user", "write")(http.HandlerFunc(a.handleUserRegistration))).Methods(http.MethodPost)
+	protectedRoute.Handle("/users/all", a.hasAccess("user", "read")(http.HandlerFunc(a.handleGetAllRegisteredUsers))).Methods(http.MethodGet)
 	clientRoute.HandleFunc("/user/login", a.handleUserLogin).Methods(http.MethodPost)
 	protectedRoute.HandleFunc("/user/logout", a.handleUserLogout).Methods(http.MethodGet)
 	clientRoute.HandleFunc("/user/{id}", a.handleGetUserByID).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/user/delete/{id}", a.handleDeleteUser).Methods(http.MethodDelete)
+	protectedRoute.Handle("/user/delete/{id}", a.hasAccess("user", "delete")(http.HandlerFunc(a.handleDeleteUser))).Methods(http.MethodDelete)
 	clientRoute.HandleFunc("/user/stats/{id}", a.handleGetUserStats).Methods(http.MethodGet)
 
 	// -----------------------IP-LOOKUP----------------------------------------------------
@@ -108,20 +109,20 @@ func (a *APIServer) Start() error {
 	clientRoute.HandleFunc("/role/delete/{id}", a.handleDeleteRole).Methods(http.MethodDelete)
 
 	// --------------------------PORT-ANALYSIS---------------------
-	protectedRoute.HandleFunc("/scan/port", a.HandlePortScan).Methods(http.MethodPost)
-	protectedRoute.HandleFunc("/scan/service", a.HandleServiceDetection).Methods(http.MethodPost)
-	protectedRoute.HandleFunc("/services", a.handleGetAllDetectedServices).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/services/stats", a.handleFetchStatsForAllHistory).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/scan/history/{id}", a.handleGetServiceByID).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/service/delete/{id}", a.handleServiceDelete).Methods(http.MethodDelete)
-	protectedRoute.HandleFunc("/service/stats/{id}", a.handleFetchStatsByServiceID).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/service/user/stats/{userID}", a.handleFetchStatsForUser).Methods(http.MethodGet)
+	protectedRoute.Handle("/scan/port", a.hasAccess("port-scan", "write")(http.HandlerFunc(a.HandlePortScan))).Methods(http.MethodPost)
+	protectedRoute.Handle("/scan/service", a.hasAccess("port-scan", "write")(http.HandlerFunc(a.HandleServiceDetection))).Methods(http.MethodPost)
+	protectedRoute.Handle("/services", a.hasAccess("port-scan", "read")(http.HandlerFunc(a.handleGetAllDetectedServices))).Methods(http.MethodGet)
+	protectedRoute.Handle("/services/stats", a.hasAccess("port-scan", "read")(http.HandlerFunc(a.handleFetchStatsForAllHistory))).Methods(http.MethodGet)
+	protectedRoute.Handle("/scan/history/{id}", a.hasAccess("port-scan", "read")(http.HandlerFunc(a.handleGetServiceByID))).Methods(http.MethodGet)
+	protectedRoute.Handle("/service/delete/{id}", a.hasAccess("port-scan", "delete")(http.HandlerFunc(a.handleServiceDelete))).Methods(http.MethodDelete)
+	protectedRoute.Handle("/service/stats/{id}", a.hasAccess("port-scan", "read")(http.HandlerFunc(a.handleFetchStatsByServiceID))).Methods(http.MethodGet)
+	protectedRoute.Handle("/service/user/stats/{userID}", a.hasAccess("port-scan", "read")(http.HandlerFunc(a.handleFetchStatsForUser))).Methods(http.MethodGet)
 
 	// ---------------------PCAP-FILE-ANALYSIS------------------------
-	protectedRoute.HandleFunc("/pcap/scan/{id}", a.handleAnalyzeOfPCAP).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/pcap/upload", a.handleUploadPCAPFile).Methods(http.MethodPost)
-	protectedRoute.HandleFunc("/pcap/metas", a.handleGetAllPcapMetaData).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/pcap/delete/{id}", a.handleDeletePCAPMetaData).Methods(http.MethodDelete)
+	protectedRoute.Handle("/pcap/scan/{id}", a.hasAccess("pcap-scan", "read")(http.HandlerFunc(a.handleAnalyzeOfPCAP))).Methods(http.MethodGet)
+	protectedRoute.Handle("/pcap/upload", a.hasAccess("pcap-scan", "write")(http.HandlerFunc(a.handleUploadPCAPFile))).Methods(http.MethodPost)
+	protectedRoute.Handle("/pcap/metas", a.hasAccess("pcap-scan", "read")(http.HandlerFunc(a.handleGetAllPcapMetaData))).Methods(http.MethodGet)
+	protectedRoute.Handle("/pcap/delete/{id}", a.hasAccess("pcap-scan", "delete")(http.HandlerFunc(a.handleDeletePCAPMetaData))).Methods(http.MethodDelete)
 
 	// -----------------------AD-ROUTES-----------------------------------
 	clientRoute.HandleFunc("/ad/checkhealth", a.handleADHealthCheck).Methods(http.MethodPost)
