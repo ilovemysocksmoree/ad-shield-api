@@ -181,7 +181,6 @@ func (a *APIServer) validateClientWithGivenToken(nxt http.Handler) http.Handler 
 		vars := mux.Vars(r)
 		client_id := vars["client_id"]
 
-		fmt.Printf("Client ID from URL: %s ||| client ID from token: %s \n", client_id, claims.ClientID)
 		if client_id != claims.ClientID {
 			responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
 				"message":     "unexpected error",
@@ -341,7 +340,53 @@ func (a *APIServer) validateForPermissions(nxt http.Handler) http.Handler {
 			return
 		}
 
-		fmt.Println(role.Permissions)
+		ctx := context.WithValue(r.Context(), utils.ROLE_KEY, role)
+		r = r.WithContext(ctx)
 		nxt.ServeHTTP(w, r)
 	})
+}
+
+func (a *APIServer) hasAccess(component, action string) func(http.Handler) http.Handler {
+	return func(nxt http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			roles, exist := r.Context().Value(utils.ROLE_KEY).(*db.Roles)
+			if !exist {
+				responseWithJSON(w, http.StatusForbidden, map[string]interface{}{
+					"message":     "forbidden",
+					"description": "role doesn't exist on user",
+					"status":      "failed",
+				})
+
+				return
+			}
+
+			for _, permission := range roles.Permissions {
+				if permission == "all" {
+					nxt.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			hasAccess := false
+			for _, permission := range roles.Permissions {
+				parts := strings.Split(permission, "_")
+				if len(parts) >= 2 && parts[0] == component && parts[1] == action {
+					hasAccess = true
+					break
+				}
+			}
+
+			if !hasAccess {
+				responseWithJSON(w, http.StatusForbidden, map[string]interface{}{
+					"message":     "unauthorized",
+					"description": fmt.Sprintf("not allowed to access service: %s for action: %s", component, action),
+					"status":      "failed",
+				})
+
+				return
+			}
+
+			nxt.ServeHTTP(w, r)
+		})
+	}
 }

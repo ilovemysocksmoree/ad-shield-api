@@ -59,8 +59,7 @@ func (a *APIServer) Start() error {
 
 	protectedRoute := router.PathPrefix("/api/v1/{client_id}").Subrouter()
 	protectedRoute.Use(a.ValidateIfRealClientID, a.InitializeStores, a.Authorization)
-	protectedRoute.Use(a.validateClientWithGivenToken, a.validateIfUserExistInClient)
-	protectedRoute.Use(a.validateForPermissions)
+	protectedRoute.Use(a.validateClientWithGivenToken, a.validateIfUserExistInClient, a.validateForPermissions)
 
 	// ---------------___TESTING-----------------------------------
 	protectedRoute.HandleFunc("/validator", a.RBACValidatorHandler).Methods(http.MethodGet)
@@ -97,10 +96,10 @@ func (a *APIServer) Start() error {
 	clientRoute.HandleFunc("/user/stats/{id}", a.handleGetUserStats).Methods(http.MethodGet)
 
 	// -----------------------IP-LOOKUP----------------------------------------------------
-	protectedRoute.HandleFunc("/ip/lookup", a.handleIPLookup).Methods(http.MethodPost)
-	protectedRoute.HandleFunc("/ip/lookup/history", a.handleGetAllIPLookup).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/ip/lookup/{id}", a.handleGetAIPLookup).Methods(http.MethodGet)
-	protectedRoute.HandleFunc("/ip/lookup/delete/{id}", a.handleDeleteIPLookupData).Methods(http.MethodDelete)
+	protectedRoute.Handle("/ip/lookup", a.hasAccess("ip-lookup", "write")(http.HandlerFunc(a.handleIPLookup))).Methods(http.MethodPost)
+	protectedRoute.Handle("/ip/lookup/history", a.hasAccess("ip-lookup", "read")(http.HandlerFunc(a.handleGetAllIPLookup))).Methods(http.MethodGet)
+	protectedRoute.Handle("/ip/lookup/{id}", a.hasAccess("ip-lookup", "read")(http.HandlerFunc(a.handleGetAIPLookup))).Methods(http.MethodGet)
+	protectedRoute.Handle("/ip/lookup/delete/{id}", a.hasAccess("ip-lookup", "delete")(http.HandlerFunc(a.handleDeleteIPLookupData))).Methods(http.MethodDelete)
 
 	// ------------------ROLES--------------------------
 	clientRoute.HandleFunc("/roles/add", a.handleAddRoles).Methods(http.MethodPost)

@@ -29,6 +29,16 @@ func (a *APIServer) RBACValidatorHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	role, exist := r.Context().Value(utils.ROLE_KEY).(*db.Roles)
+	if !exist {
+		responseWithJSON(w, http.StatusNotFound, map[string]interface{}{
+			"message":     "role not found",
+			"description": "token provided in header is likely invalid",
+			"status":      "failed",
+		})
+
+		return
+	}
 	responseWithJSON(w, http.StatusOK, map[string]interface{}{
 		"message":     "good to go",
 		"description": "client and user is good, no fishy activity detected",
@@ -36,6 +46,7 @@ func (a *APIServer) RBACValidatorHandler(w http.ResponseWriter, r *http.Request)
 		"docs": map[string]interface{}{
 			"client": client,
 			"user":   user,
+			"role":   role,
 		},
 	})
 }
