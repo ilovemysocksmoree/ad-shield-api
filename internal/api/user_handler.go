@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/bob17/adpis/internal/db"
@@ -68,9 +69,10 @@ func (a *APIServer) handleUserRegistration(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	userName := strings.ReplaceAll(user.UserName, " ", "_")
 	dbUser := db.Users{
 		ID:            bson.NewObjectID(),
-		UserName:      user.UserName,
+		UserName:      userName,
 		FirstName:     user.FirstName,
 		LastName:      user.LastName,
 		Email:         user.Email,

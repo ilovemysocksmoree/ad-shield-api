@@ -115,6 +115,18 @@ func (ra *RoleStore) GetARoleWithID(ctx context.Context, id bson.ObjectID) (*Rol
 	return &role, nil
 }
 
+func (ra *RoleStore) DeleteRoleWithID(ctx context.Context, id bson.ObjectID) error {
+	resp, err := ra.c.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return err
+	}
+
+	if resp.DeletedCount == 0 {
+		return fmt.Errorf("deletedCount is zero, unable to delete role")
+	}
+	return nil
+}
+
 func (rs *RoleStore) GenerateAnalysis(ctx context.Context) (*RoleAnalysisResult, error) {
 	// Get all roles
 	roles, err := rs.GetAllRoles(ctx, 0, 0)

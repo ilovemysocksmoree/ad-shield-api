@@ -99,8 +99,9 @@ func (a *APIServer) Start() error {
 	protectedRoute.HandleFunc("/ip/lookup/delete/{id}", a.handleDeleteIPLookupData).Methods(http.MethodDelete)
 
 	// ------------------ROLES--------------------------
-	protectedRoute.HandleFunc("/roles/add", a.handleAddRoles).Methods(http.MethodPost)
-	protectedRoute.HandleFunc("/roles", a.handleGetAllRoles).Methods(http.MethodGet)
+	clientRoute.HandleFunc("/roles/add", a.handleAddRoles).Methods(http.MethodPost)
+	clientRoute.HandleFunc("/roles", a.handleGetAllRoles).Methods(http.MethodGet)
+	clientRoute.HandleFunc("/role/delete/{id}", a.handleDeleteRole).Methods(http.MethodDelete)
 
 	// --------------------------PORT-ANALYSIS---------------------
 	protectedRoute.HandleFunc("/scan/port", a.HandlePortScan).Methods(http.MethodPost)
