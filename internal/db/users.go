@@ -172,6 +172,41 @@ func (us *UserStore) DeleteUser(ctx context.Context, id bson.ObjectID) error {
 	return nil
 }
 
+func (us *UserStore) UpdateUser(ctx context.Context, id bson.ObjectID, u Users) error {
+	u.UpdatedAt = time.Now()
+
+	up := bson.M{
+		"$set": bson.M{
+			"user_name":      u.UserName,
+			"first_name":     u.FirstName,
+			"last_name":      u.LastName,
+			"email":          u.Email,
+			"contact_number": u.ContactNumber,
+			"role_id":        u.RoleID,
+			"updated_at":     u.UpdatedAt,
+		},
+	}
+
+	if u.Password != "" {
+		up["$set"].(bson.M)["password"] = u.Password
+	}
+
+	resp, err := us.c.UpdateOne(ctx, bson.M{"_id": id}, up)
+	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return fmt.Errorf("update failed: username already exist")
+		}
+
+		return fmt.Errorf("error updating user: %v", err)
+	}
+
+	if resp.MatchedCount == 0 {
+		return fmt.Errorf("no user found for id: %s", id.Hex())
+	}
+
+	return nil
+}
+
 func (us *UserStore) GenerateAnalysis(ctx context.Context) (*UserAnalysisResult, error) {
 	// Get all users
 	users, err := us.GetAllUsersFromDB(ctx, 0, 0)

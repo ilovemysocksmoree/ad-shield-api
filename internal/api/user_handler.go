@@ -440,6 +440,67 @@ func (a *APIServer) handleGetUserStats(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (a *APIServer) handleUpdateUserInfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "try method PUT if you want to update user information",
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+	userID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid userID in path",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	var user models.ReqUserRegistration
+	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid body",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	updateUser := db.Users{
+		UserName:      user.UserName,
+		FirstName:     user.FirstName,
+		LastName:      user.LastName,
+		Email:         user.Email,
+		RoleID:        user.RoleID,
+		ContactNumber: user.ContactNumber,
+		Password:      user.Password,
+	}
+
+	if err := a.userStore.UpdateUser(r.Context(), userID, updateUser); err != nil {
+		responseWithJSON(w, http.StatusInternalServerError, map[string]interface{}{
+			"message":     "internal error while updating user",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     "successfully updated",
+		"description": fmt.Sprintf("user with username: %s has been updated", updateUser.UserName),
+		"status":      "success",
+	})
+}
+
 func isUserValid(usr models.ReqUserRegistration) bool {
 	if usr.Email == "" || usr.Password == "" {
 		return false

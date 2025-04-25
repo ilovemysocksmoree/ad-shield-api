@@ -7,7 +7,7 @@ import (
 	"github.com/bob17/adpis/pkg/utils"
 )
 
-func (a *APIServer) RBACValidatorHandler(w http.ResponseWriter, r *http.Request) {
+func (a *APIServer) handleGetInfoBasedOnToken(w http.ResponseWriter, r *http.Request) {
 	client, exist := r.Context().Value(utils.CLIENT_KEY).(*db.ADClient)
 	if !exist {
 		responseWithJSON(w, http.StatusNotFound, map[string]interface{}{

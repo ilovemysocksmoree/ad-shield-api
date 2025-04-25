@@ -61,8 +61,6 @@ func (a *APIServer) Start() error {
 	protectedRoute.Use(a.ValidateIfRealClientID, a.InitializeStores, a.Authorization)
 	protectedRoute.Use(a.validateClientWithGivenToken, a.validateIfUserExistInClient, a.validateForPermissions)
 
-	// ---------------___TESTING-----------------------------------
-	protectedRoute.HandleFunc("/validator", a.RBACValidatorHandler).Methods(http.MethodGet)
 	// --------------SUPER-ADMIN---------------------------------
 	superAdminRoute.HandleFunc("/add/client", a.handleClientAdd).Methods(http.MethodPost)
 	superAdminRoute.HandleFunc("/clients", a.handleGetAllClient).Methods(http.MethodGet)
@@ -87,7 +85,6 @@ func (a *APIServer) Start() error {
 	superAdminRoute.HandleFunc("/clients/{id}/roles/stats", a.handleGetAllStatsFromRoles).Methods(http.MethodGet)
 
 	// ------------------USERS--------------------------
-
 	protectedRoute.Handle("/user/register", a.hasAccess("user", "write")(http.HandlerFunc(a.handleUserRegistration))).Methods(http.MethodPost)
 	protectedRoute.Handle("/users/all", a.hasAccess("user", "read")(http.HandlerFunc(a.handleGetAllRegisteredUsers))).Methods(http.MethodGet)
 	clientRoute.HandleFunc("/user/login", a.handleUserLogin).Methods(http.MethodPost)
@@ -95,6 +92,8 @@ func (a *APIServer) Start() error {
 	clientRoute.HandleFunc("/user/{id}", a.handleGetUserByID).Methods(http.MethodGet)
 	protectedRoute.Handle("/user/delete/{id}", a.hasAccess("user", "delete")(http.HandlerFunc(a.handleDeleteUser))).Methods(http.MethodDelete)
 	clientRoute.HandleFunc("/user/stats/{id}", a.handleGetUserStats).Methods(http.MethodGet)
+	clientRoute.HandleFunc("/user/update/{id}", a.handleUpdateUserInfo).Methods(http.MethodPut)
+	protectedRoute.HandleFunc("/fetch/user/info", a.handleGetInfoBasedOnToken).Methods(http.MethodGet)
 
 	// -----------------------IP-LOOKUP----------------------------------------------------
 	protectedRoute.Handle("/ip/lookup", a.hasAccess("ip-lookup", "write")(http.HandlerFunc(a.handleIPLookup))).Methods(http.MethodPost)
