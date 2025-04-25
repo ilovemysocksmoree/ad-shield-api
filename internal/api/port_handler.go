@@ -13,6 +13,7 @@ import (
 	"github.com/bob17/adpis/internal/rbac"
 	"github.com/bob17/adpis/internal/scanner"
 	"github.com/bob17/adpis/internal/service"
+	"github.com/bob17/adpis/internal/vulnerability"
 	"github.com/bob17/adpis/pkg/utils"
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -449,6 +450,47 @@ func (a *APIServer) handleFetchStatsByServiceID(w http.ResponseWriter, r *http.R
 		"description": fmt.Sprintf("successfully fetched stats for service id: %s", id),
 		"status":      "success",
 		"stats":       resp,
+	})
+}
+
+func (a *APIServer) handlePortVulnerabilityScanning(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		responseWithJSON(w, http.StatusBadRequest, map[string]interface{}{
+			"message":     "invalid method",
+			"description": "try method GET to scan for vulnerability",
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+	serviceID, err := bson.ObjectIDFromHex(id)
+	if err != nil {
+		responseWithJSON(w, http.StatusBadGateway, map[string]interface{}{
+			"message":     "invalid id provided in URL path",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+		return
+	}
+
+	scanner := vulnerability.NewPortVulnerabilityScanner(a.serviceDetectionStore, a.logger, vulnerability.Keyword)
+	if err := scanner.ScanVulnerability(r.Context(), serviceID); err != nil {
+		responseWithJSON(w, http.StatusExpectationFailed, map[string]interface{}{
+			"message":     "ports not scanned",
+			"description": err.Error(),
+			"status":      "failed",
+		})
+
+		return
+	}
+
+	responseWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message":     "scanned ports",
+		"description": "ports has been scanned successfully",
+		"status":      "success",
 	})
 }
 
